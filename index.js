@@ -41,14 +41,24 @@ register.registerMetric(jobDurationGauge);
 register.registerMetric(jobStatusGauge);
 
 function statusToNum(stat) {
-    return {
+    const v = {
         running: 0,
+        pending: 1,
         pending: 1,
         success: 2,
         failed: 3,
         canceled: 4,
         skipped: 5,
+        created: 6,
     }[stat];
+
+    // pending if unknown
+    if (v === undefined) {
+        console.log('Status unknown: ', stat);
+        return 1;
+    }
+
+    return v;
 }
 
 function addToCache(id, entry) {
@@ -104,7 +114,7 @@ function addPipeline(pipeline) {
     pipelineDurationGauge.set(labels, now.getTime() - then.getTime());
 }
 
-app.get('/', function(request, response){
+function render(request, response) {
     register.resetMetrics()
 
     for (let [key, value] of Object.entries(cache)) {
@@ -118,7 +128,10 @@ app.get('/', function(request, response){
     }
 
     response.send(register.metrics());
-});
+}
+
+app.get('/', render);
+app.get('/metrics', render);
 
 app.post('/', function(request, response){
     let d = request.body;
